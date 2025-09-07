@@ -6,42 +6,25 @@ Splitit is the ultimate YouTube audio splitter for chaos lovers. Download any Yo
 
 ```bash
 npm install -g @roflsec/splitit
+```
 
-During installation:
+- **Termux (Android)**: yt-dlp and ffmpeg installed automatically. Spleeter requires Python <=3.10 in Proot Debian. Interactive prompt guides installation.
+- **Windows/Linux/Mac**: full installation of Python, Spleeter, and TensorFlow CPU.
 
-yt-dlp and ffmpeg are downloaded automatically for your OS.
+## Usage
 
-Spleeter is installed and built as a binary via PyInstaller for Windows/Linux/Mac.
+```bash
+splitit <YouTube URL>
+```
 
-On Termux, Python + Spleeter + TensorFlow CPU are installed automatically.
+- Downloads audio in mp3 format.
+- Separate stems with:
 
-No Python, TensorFlow, or Spleeter required from the user side.
+```bash
+./bin/splitit-spleeter <file.mp3>
+```
 
-
-Usage
-
-splitit <youtube_url>
-
-Example:
-
-splitit https://www.youtube.com/watch?v=dQw4w9WgXcQ
-
-This generates in output/:
-
-full.wav – the original audio
-
-vocals.wav – isolated vocals
-
-accompaniment.wav – isolated instrumental
-
-
-Notes
-
-On Termux, Spleeter runs directly via Python.
-
-On other platforms, the pre-built Spleeter binary is used.
-
-Output folder is created automatically.
+Output saved in `./output`.
 
 Works on x86, x64, and ARM (Termux) for maximum mayhem.
 
@@ -56,15 +39,3 @@ MIT
 RoflSec tip: Install, run, and let the chaos unfold. Perfect for audio hackers, music magicians, or anyone who loves Lulz.
 
 ---
-splitit/
-├── bin/
-│   ├── cli.js
-│   ├── yt-dlp
-│   ├── ffmpeg
-│   └── spleeter
-├── scripts/
-│   ├── install-binaries.js
-│   └── spleeter_launcher.py
-├── package.json
-└── README.md
-

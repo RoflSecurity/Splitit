@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+BIN_DIR="$(dirname "$0")"
+INPUT="$1"
+OUTPUT_DIR="$PWD/output"
+
+if [ -z "$INPUT" ]; then
+  echo "Usage: splitit-spleeter <file.mp3>"
+  exit 1
+fi
+
+if [ ! -x "$BIN_DIR/yt-dlp" ]; then
+  echo "yt-dlp not found. Run install-binaries.js first."
+  exit 1
+fi
+
+if [ ! -x "$BIN_DIR/ffmpeg" ]; then
+  echo "ffmpeg not found. Run install-binaries.js first."
+  exit 1
+fi
+
+if [ ! -d "$BIN_DIR/proot-debian" ]; then
+  echo "Proot Debian environment not found. Run install-binaries.js first."
+  exit 1
+fi
+
+mkdir -p "$OUTPUT_DIR"
+
+echo "Running Spleeter inside Proot..."
+proot-distro login debian -- bash -c "spleeter separate -i '$INPUT' -p spleeter:2stems -o '/data/data/com.termux/files/home/output'"
+echo "Output files are in $OUTPUT_DIR"
