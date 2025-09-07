@@ -6,28 +6,26 @@ Splitit is the ultimate YouTube audio splitter for chaos lovers. Download any Yo
 
 ```bash
 npm install -g @roflsec/splitit
-```
 
-- **Termux (Android)**: yt-dlp and ffmpeg installed automatically. Spleeter requires Python <=3.10 in Proot Debian. Interactive prompt guides installation.
-- **Windows/Linux/Mac**: full installation of Python, Spleeter, and TensorFlow CPU.
+Termux (Android): yt-dlp and ffmpeg installed automatically. Spleeter requires Python <=3.10 in Proot Debian. Interactive prompt guides installation.
 
-## Usage
+Windows/Linux/Mac: full installation of Python, Spleeter, and TensorFlow CPU.
 
-```bash
+
+Usage
+
 splitit <YouTube URL>
-```
 
-- Downloads audio in mp3 format.
-- Separate stems with:
+Downloads audio in mp3 format.
 
-```bash
+Separate stems with:
+
+
 ./bin/splitit-spleeter <file.mp3>
-```
 
-Output saved in `./output`.
+Output saved in ./output.
 
 Works on x86, x64, and ARM (Termux) for maximum mayhem.
-
 
 License
 
