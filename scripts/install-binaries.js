@@ -1,4 +1,4 @@
-import { mkdirSync, existsSync } from "fs";
+import { mkdirSync } from "fs";
 import { execSync } from "child_process";
 import { platform } from "os";
 import path from "path";
@@ -8,11 +8,10 @@ mkdirSync(binDir, { recursive: true });
 
 function download(url, output) {
   console.log("Downloading:", url);
-  if (platform() === "android") {
-    // Termux: use curl to follow redirects
+  const os = platform();
+  if (os === "android") {
     execSync(`curl -L -o "${output}" "${url}"`, { stdio: "inherit" });
   } else {
-    // Other OS: use curl if available
     try {
       execSync(`curl -L -o "${output}" "${url}"`, { stdio: "inherit" });
     } catch {
@@ -51,7 +50,6 @@ if (os === "win32") pythonInstaller = "https://www.python.org/ftp/python/3.9.18/
       console.log("Termux detected: installing Python and Spleeter via pip");
       execSync("pkg install -y python ffmpeg", { stdio: "inherit" });
       try { execSync("python3 -m pip --version"); } catch { execSync("pkg install -y python-pip", { stdio: "inherit" }); }
-      execSync("python3 -m pip install --upgrade pip", { stdio: "inherit" });
       execSync("python3 -m pip install spleeter tensorflow-cpu", { stdio: "inherit" });
     } else {
       let pythonCmd = "python3";
