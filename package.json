@@ -1,0 +1,14 @@
+{
+  "name": "@roflsec/splitit",
+  "version": "0.0.1",
+  "description": "Ez",
+  "author": "RoflSec",
+  "type": "module",
+  "bin": {
+    "splitit": "./bin/cli.js"
+  },
+  "scripts": {
+    "postinstall": "node ./scripts/install-binaries.js"
+  },
+  "license": "MIT"
+}
