@@ -1,27 +1,44 @@
 #!/usr/bin/env node
-import { exec } from "child_process";
+import { execSync } from "child_process";
 import os from "os";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const url = process.argv[2];
-if (!url) {
-  console.error("Usage: splitit <youtube-url>");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const args = process.argv.slice(2);
+
+if (args.length < 1) {
+  console.error("❌ Utilisation : splitit <url_youtube>");
   process.exit(1);
 }
 
-const isTermux = os.platform() === "android";
+const url = args[0];
+const cwd = process.cwd(); // dossier où splitit est lancé
+const outputDir = path.join(cwd, "output");
 
-if (isTermux) {
-  console.log("📱 Termux détecté : téléchargement MP3 + conversion WAV seulement...");
-  exec(`bash ./scripts/download.sh "${url}"`, (err, stdout, stderr) => {
-    if (err) return console.error(stderr);
-    console.log(stdout);
-    console.log("✅ Termux : MP3 + WAV téléchargés dans ./output");
-  });
-} else {
-  console.log("💻 Linux/Windows détecté : téléchargement + séparation Spleeter...");
-  exec(`python3 ./scripts/spleeter-launcher.py "${url}" "./output"`, (err, stdout, stderr) => {
-    if (err) return console.error(stderr);
-    console.log(stdout);
-    console.log("✅ Séparation terminée, fichiers dans ./output");
-  });
+// Scripts absolus
+const downloadScript = path.join(__dirname, "download.sh");
+const spleeterLauncher = path.join(__dirname, "spleeter-launcher.py");
+
+// Détection Termux
+const isTermux =
+  process.env.PREFIX && process.env.PREFIX.includes("com.termux");
+
+try {
+  if (isTermux) {
+    console.log("📱 Termux détecté : téléchargement MP3 + conversion WAV seulement...");
+    execSync(`bash "${downloadScript}" "${url}" "${outputDir}"`, {
+      stdio: "inherit",
+    });
+  } else {
+    console.log("💻 OS standard détecté : téléchargement + séparation avec Spleeter...");
+    execSync(`python3 "${spleeterLauncher}" "${url}" "${outputDir}"`, {
+      stdio: "inherit",
+    });
+  }
+
+  console.log(`✅ Traitement terminé dans ${outputDir}`);
+} catch (err) {
+  console.error("❌ Erreur lors du traitement :", err.message);
+  process.exit(1);
 }

@@ -1,12 +1,9 @@
 #!/bin/bash
 url="$1"
-output_dir="./output"
-mkdir -p "$output_dir"
+output="$2"
+mkdir -p "$output"
 
-echo "⬇️ Téléchargement MP3..."
-yt-dlp -x --audio-format mp3 -o "$output_dir/%(title)s.%(ext)s" "$url"
-
-echo "🎵 Conversion MP3 → WAV..."
-for f in "$output_dir"/*.mp3; do
-    ffmpeg -i "$f" "${f%.mp3}.wav"
-done
+yt-dlp -f bestaudio "$url" -o "$output/audio.%(ext)s"
+ffmpeg -i "$output/audio.webm" -vn -acodec libmp3lame "$output/audio.mp3"
+ffmpeg -i "$output/audio.mp3" "$output/audio.wav"
+rm "$output/audio.webm"

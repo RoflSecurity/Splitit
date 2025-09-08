@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
-import sys
 import subprocess
+import sys
 from pathlib import Path
-from yt_dlp import YoutubeDL
+import yt_dlp
 
 url = sys.argv[1]
 output_dir = Path(sys.argv[2])
 output_dir.mkdir(exist_ok=True)
 
-# Télécharger l'audio
-ydl_opts = {
-    'format': 'bestaudio/best',
-    'outtmpl': str(output_dir / '%(title)s.%(ext)s'),
-    'quiet': True
-}
+# Télécharger audio
+mp3_path = output_dir / "audio.mp3"
+ydl_opts = {"format": "bestaudio/best", "outtmpl": str(mp3_path)}
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    ydl.download([url])
 
-with YoutubeDL(ydl_opts) as ydl:
-    info = ydl.extract_info(url, download=True)
-    mp3_path = str(output_dir / f"{info['title']}.mp3")
-
-# Spleeter : séparer voix / instrument
-subprocess.run(["spleeter", "separate", "-p", "spleeter:2stems", "-o", str(output_dir), mp3_path])
+# Séparer les pistes avec Spleeter
+try:
+    subprocess.run(["spleeter", "separate", "-p", "spleeter:2stems", "-o", str(output_dir), str(mp3_path)], check=True)
+except FileNotFoundError:
+    print("⚠️ Spleeter non trouvé. Installez-le via 'pip install spleeter'")
+    sys.exit(1)
