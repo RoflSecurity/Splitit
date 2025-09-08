@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
 import sys
-import os
 import subprocess
 from pathlib import Path
+from yt_dlp import YoutubeDL
 
 url = sys.argv[1]
-output_dir = sys.argv[2]
+output_dir = Path(sys.argv[2])
+output_dir.mkdir(exist_ok=True)
 
-Path(output_dir).mkdir(parents=True, exist_ok=True)
+# Télécharger l'audio
+ydl_opts = {
+    'format': 'bestaudio/best',
+    'outtmpl': str(output_dir / '%(title)s.%(ext)s'),
+    'quiet': True
+}
 
-# Télécharger le mp3 depuis YouTube
-mp3_path = os.path.join(output_dir, "audio.mp3")
-subprocess.run(["yt-dlp", "-x", "--audio-format", "mp3", "-o", mp3_path, url])
+with YoutubeDL(ydl_opts) as ydl:
+    info = ydl.extract_info(url, download=True)
+    mp3_path = str(output_dir / f"{info['title']}.mp3")
 
-# Détecter l'OS
-is_termux = "ANDROID_ROOT" in os.environ
-
-# Spleeter
-if is_termux:
-    # Termux: seulement 2 pistes (mix mp3 + wav)
-    subprocess.run(["spleeter", "separate", "-p", "spleeter:2stems", "-o", output_dir, mp3_path])
-else:
-    # Linux/Windows/macOS: 6 pistes (vocals/instrument/mix)
-    subprocess.run(["spleeter", "separate", "-p", "spleeter:4stems", "-o", output_dir, mp3_path])
+# Spleeter : séparer voix / instrument
+subprocess.run(["spleeter", "separate", "-p", "spleeter:2stems", "-o", str(output_dir), mp3_path])

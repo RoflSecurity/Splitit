@@ -1,20 +1,27 @@
 #!/usr/bin/env node
-const { exec } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+import { exec } from "child_process";
+import os from "os";
 
 const url = process.argv[2];
 if (!url) {
-  console.log("Usage: splitit <youtube-url>");
+  console.error("Usage: splitit <youtube-url>");
   process.exit(1);
 }
 
-const outputDir = path.resolve(__dirname, "../output");
-if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
+const isTermux = os.platform() === "android";
 
-const command = `python3 ${path.resolve(__dirname,"./spleeter-launcher.py")} "${url}" "${outputDir}"`;
-
-exec(command, (err, stdout, stderr) => {
-  if (err) console.error(err);
-  else console.log(stdout);
-});
+if (isTermux) {
+  console.log("📱 Termux détecté : téléchargement MP3 + conversion WAV seulement...");
+  exec(`bash ./scripts/download.sh "${url}"`, (err, stdout, stderr) => {
+    if (err) return console.error(stderr);
+    console.log(stdout);
+    console.log("✅ Termux : MP3 + WAV téléchargés dans ./output");
+  });
+} else {
+  console.log("💻 Linux/Windows détecté : téléchargement + séparation Spleeter...");
+  exec(`python3 ./scripts/spleeter-launcher.py "${url}" "./output"`, (err, stdout, stderr) => {
+    if (err) return console.error(stderr);
+    console.log(stdout);
+    console.log("✅ Séparation terminée, fichiers dans ./output");
+  });
+}
