@@ -1,31 +1,21 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/bin/sh
+# bin/splitit-spleeter
+# Lance Spleeter via pipx sur Termux
 
-URL="$1"
+# Vérifie si pipx est installé
+if ! command -v pipx >/dev/null 2>&1; then
+  echo "⚠️ pipx non trouvé. Installation..."
+  pkg install python -y
+  python3 -m pip install --user pipx
+  python3 -m pipx ensurepath
+  export PATH="$PATH:$HOME/.local/bin"
+fi
 
-# Télécharger le titre propre pour nommer les fichiers
-TITLE=$(yt-dlp --get-title "$URL")
-SAFE_TITLE=$(echo "$TITLE" | sed 's/[^a-zA-Z0-9_-]/_/g')
-WAVFILE="${SAFE_TITLE}.wav"
+# Vérifie si spleeter est installé via pipx
+if ! pipx list | grep -q spleeter; then
+  echo "⚠️ Spleeter non installé. Installation via pipx..."
+  pipx install spleeter
+fi
 
-# Télécharger et convertir en WAV
-yt-dlp -x --audio-format wav -o "$WAVFILE" "$URL"
-
-# Créer dossier output si inexistant
-mkdir -p ./output
-
-# Séparer voix/instrumental avec Spleeter
-spleeter separate -p spleeter:2stems -o ./output "$WAVFILE"
-
-# Spleeter génère : ./output/<nom_du_fichier>/vocals.wav et accompaniment.wav
-VOX="./output/$SAFE_TITLE/vocals.wav"
-INST="./output/$SAFE_TITLE/accompaniment.wav"
-
-# Convertir en MP3
-ffmpeg -i "$VOX" -q:a 0 "${SAFE_TITLE}_vocals.mp3"
-ffmpeg -i "$INST" -q:a 0 "${SAFE_TITLE}_instrumental.mp3"
-ffmpeg -i "$WAVFILE" -q:a 0 "${SAFE_TITLE}_full.mp3"
-
-# Supprimer fichiers WAV pour économiser de la place
-rm -f "$WAVFILE" "$VOX" "$INST"
-
-echo "✅ Fichiers générés : ${SAFE_TITLE}_vocals.mp3, ${SAFE_TITLE}_instrumental.mp3, ${SAFE_TITLE}_full.mp3"
+# Exécute Spleeter avec tous les arguments passés
+pipx run spleeter "$@"

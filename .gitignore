@@ -10,3 +10,7 @@
 /node_modules
 *.log
 .DS_Store
+venv/
+dist/
+*.pyc
+__pycache__/

@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
 import sys
-from spleeter.separator import Separator
+import os
+import subprocess
 from pathlib import Path
 
-if len(sys.argv) < 2:
-    print("Usage: spleeter-launcher.py <audio file>")
-    sys.exit(1)
+url = sys.argv[1]
+output_dir = sys.argv[2]
 
-audio_file = sys.argv[1]
-output_dir = str(Path(audio_file).with_suffix(''))
+Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-separator = Separator('spleeter:2stems')
-separator.separate_to_file(audio_file, output_dir)
+# Télécharger le mp3 depuis YouTube
+mp3_path = os.path.join(output_dir, "audio.mp3")
+subprocess.run(["yt-dlp", "-x", "--audio-format", "mp3", "-o", mp3_path, url])
 
-print(f"✅ Séparation terminée : {output_dir}")
+# Détecter l'OS
+is_termux = "ANDROID_ROOT" in os.environ
+
+# Spleeter
+if is_termux:
+    # Termux: seulement 2 pistes (mix mp3 + wav)
+    subprocess.run(["spleeter", "separate", "-p", "spleeter:2stems", "-o", output_dir, mp3_path])
+else:
+    # Linux/Windows/macOS: 6 pistes (vocals/instrument/mix)
+    subprocess.run(["spleeter", "separate", "-p", "spleeter:4stems", "-o", output_dir, mp3_path])

@@ -1,23 +1,18 @@
 {
   "name": "@roflsec/splitit",
-  "version": "0.0.8",
-  "description": "Télécharge et sépare audio/video via YouTube et Spleeter",
-  "type": "module",
+  "version": "0.1.0",
+  "description": "Split audio from YouTube URLs into separate stems using Spleeter",
+  "author": "roflsec",
+  "license": "MIT",
   "bin": {
-    "splitit": "./bin/cli.js"
+    "splitit": "./scripts/cli.js"
   },
   "scripts": {
-    "postinstall": "node ./scripts/install-binaries.js",
-    "clean": "bash ./scripts/clean.sh"
+    "clean": "bash ./scripts/clean.sh",
+    "tree": "bash ./scripts/tree.sh"
   },
-  "keywords": ["youtube", "audio", "spleeter", "yt-dlp", "ffmpeg", "splitit"],
-  "author": "RoflSec",
-  "license": "GPL-3.0",
   "dependencies": {
-    "axios": "^1.7.0",
-    "fluent-ffmpeg": "^2.1.2"
-  },
-  "engines": {
-    "node": ">=18"
+    "ytdl-core": "^4.11.0",
+    "ffmpeg-static": "^5.1.0"
   }
 }
