@@ -1,39 +1,23 @@
 {
   "name": "@roflsec/splitit",
   "version": "0.0.8",
-  "description": "Ultimate YouTube audio splitter for chaos lovers (vocals, instrumental, full audio). Works on Windows, Linux, Mac, Termux.",
-  "main": "bin/cli.js",
+  "description": "Télécharge et sépare audio/video via YouTube et Spleeter",
   "type": "module",
   "bin": {
     "splitit": "./bin/cli.js"
   },
   "scripts": {
-    "start": "node ./bin/cli.js",
-    "postinstall": "node ./scripts/install-binaries.js"
+    "postinstall": "node ./scripts/install-binaries.js",
+    "clean": "bash ./scripts/clean.sh"
   },
-  "keywords": [
-    "youtube",
-    "audio",
-    "splitter",
-    "spleeter",
-    "ffmpeg",
-    "yt-dlp",
-    "roflsec"
-  ],
+  "keywords": ["youtube", "audio", "spleeter", "yt-dlp", "ffmpeg", "splitit"],
   "author": "RoflSec",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "dependencies": {
-    "axios": "^1.6.0"
+    "axios": "^1.7.0",
+    "fluent-ffmpeg": "^2.1.2"
   },
   "engines": {
     "node": ">=18"
-  },
-  "files": [
-    "bin/cli.js",
-    "bin/splitit-spleeter",
-    "scripts/install-binaries.js",
-    "scripts/spleeter-launcher.py",
-    "bin/ffmpeg",
-    "bin/yt-dlp"
-  ]
+  }
 }
