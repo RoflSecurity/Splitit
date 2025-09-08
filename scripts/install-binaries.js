@@ -1,67 +1,79 @@
-import { execSync } from 'child_process';
-import { existsSync, chmodSync } from 'fs';
-import { join } from 'path';
-import https from 'https';
-import { createWriteStream } from 'fs';
+#!/usr/bin/env node
+import { execSync } from "node:child_process";
+import path from "node:path";
+import fs from "fs";
 
-const BIN_DIR = join(process.cwd(), 'bin');
-const FF_URL = 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz';
-const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
-const FF_BIN = join(BIN_DIR, 'ffmpeg');
-const YTDLP_BIN = join(BIN_DIR, 'yt-dlp');
+const BIN_DIR = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "bin");
+if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR);
 
-function downloadFile(url, dest) {
-  return new Promise((resolve, reject) => {
-    const file = createWriteStream(dest);
-    https.get(url, (res) => {
-      if (res.statusCode === 302 && res.headers.location) {
-        downloadFile(res.headers.location, dest).then(resolve).catch(reject);
-        return;
-      }
-      res.pipe(file);
-      file.on('finish', () => {
-        file.close();
-        chmodSync(dest, 0o755);
-        resolve();
-      });
-    }).on('error', reject);
-  });
+function createSpinner(text) {
+  const frames = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
+  let i = 0;
+  const interval = setInterval(() => process.stdout.write(`\r${frames[i % frames.length]} ${text}`), 100);
+  return () => { clearInterval(interval); process.stdout.write(`\r✅ ${text}\n`); };
 }
 
-async function setupBinaries() {
-  if (!existsSync(YTDLP_BIN)) {
-    console.log('Downloading yt-dlp...');
-    await downloadFile(YTDLP_URL, YTDLP_BIN);
-  }
+function downloadFile(url, dest, label) {
+  const stop = createSpinner(label);
+  execSync(`curl -L "${url}" -o "${dest}"`, { stdio: "inherit" });
+  stop();
+}
 
-  if (!existsSync(FF_BIN)) {
-    console.log('Downloading FFmpeg static...');
-    await downloadFile(FF_URL, FF_BIN);
+function setupProotDebian() {
+  if (process.env.TERMUX_VERSION) {
+    console.log("⚠️ Termux avec Python incompatible détecté !");
+    console.log("Installation de Proot Debian pour Spleeter...");
+    try {
+      execSync("pkg install -y proot-distro bzip2 xz-utils python git", { stdio: "inherit" });
+      execSync("proot-distro install debian || true", { stdio: "inherit" });
+      console.log("\n✅ Proot Debian installé. Pour utiliser Spleeter :");
+      console.log("    proot-distro login debian");
+      console.log("    python3 -m pip install --upgrade pip setuptools wheel");
+      console.log("    pip install spleeter");
+    } catch {
+      console.warn("\n⚠️ Impossible d'installer Proot Debian automatiquement.");
+    }
   }
 }
 
-function setupTermuxProot() {
+function setupDebianSpleeter() {
   try {
-    execSync('pkg install -y proot-distro bzip2 xz-utils', { stdio: 'inherit' });
-    console.log('Installing Debian in Proot...');
-    execSync('proot-distro install debian', { stdio: 'inherit' });
-    console.log('Proot Debian ready. To enter: proot-distro login debian --user root');
-    console.log('Install Python <=3.10 and Spleeter inside Proot.');
-  } catch (e) {
-    console.error('Error setting up Termux Proot:', e.message);
+    const isDebian = fs.existsSync("/etc/debian_version") && !process.env.TERMUX_VERSION;
+    if (isDebian) {
+      console.log("Debian détecté : installation Python & Spleeter...");
+      execSync("sudo apt update && sudo apt install -y python3 python3-pip python3-venv ffmpeg git", { stdio: "inherit" });
+      execSync("python3 -m pip install --upgrade pip setuptools wheel", { stdio: "inherit" });
+      execSync("python3 -m pip install spleeter", { stdio: "inherit" });
+      console.log("\n✅ Spleeter installé avec succès sur Debian !");
+    }
+  } catch {
+    console.warn("\n⚠️ Impossible d'installer Spleeter automatiquement sur Debian.");
   }
 }
 
-async function main() {
-  const isTermux = process.env.PREFIX && process.env.HOME && process.env.TERMUX_VERSION;
-  await setupBinaries();
-  if (isTermux) {
-    console.log('Termux detected: setting up Proot Debian for Spleeter...');
-    setupTermuxProot();
-  } else {
-    console.log('Non-Termux system: assume Python + Spleeter + TensorFlow installed.');
-  }
-  console.log('Installation finished.');
-}
+try {
+  const YTDLP_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp";
+  const FFMPEG_URL = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz";
 
-main().catch(console.error);
+  const ytPath = path.join(BIN_DIR, "yt-dlp");
+  if (!fs.existsSync(ytPath)) downloadFile(YTDLP_URL, ytPath, "Téléchargement de yt-dlp...");
+  fs.chmodSync(ytPath, 0o755);
+
+  const ffPath = path.join(BIN_DIR, "ffmpeg");
+  if (!fs.existsSync(ffPath)) {
+    const archivePath = path.join(BIN_DIR, "ffmpeg.tar.xz");
+    downloadFile(FFMPEG_URL, archivePath, "Téléchargement de FFmpeg...");
+    execSync(`tar -xf "${archivePath}" -C "${BIN_DIR}" --strip-components=1`);
+    fs.chmodSync(ffPath, 0o755);
+    fs.unlinkSync(archivePath);
+  }
+
+  setupProotDebian();
+  setupDebianSpleeter();
+
+  console.log("\n✅ Tout est installé et prêt pour Splitit !");
+  console.log("⛵ - Made by RoflSec! Utilise 'splitit <yt url>' pour commencer.");
+} catch (err) {
+  console.error("Erreur lors de l'installation :", err);
+  process.exit(1);
+}

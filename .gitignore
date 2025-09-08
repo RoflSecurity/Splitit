@@ -1,6 +1,11 @@
 /bin/yt-dlp
-/bin/ffmpeg
 /bin/spleeter
+/bin/ffmpeg
+/bin/ffprobe
+/bin/manpages
+/bin/readme.txt
+/bin/GPLv3.txt
+/bin/qt-faststart
 /output
 /node_modules
 *.log

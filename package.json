@@ -1,14 +1,39 @@
 {
   "name": "@roflsec/splitit",
-  "version": "0.0.7",
-  "description": "Ez",
-  "author": "RoflSec",
+  "version": "0.0.8",
+  "description": "Ultimate YouTube audio splitter for chaos lovers (vocals, instrumental, full audio). Works on Windows, Linux, Mac, Termux.",
+  "main": "bin/cli.js",
   "type": "module",
   "bin": {
     "splitit": "./bin/cli.js"
   },
   "scripts": {
+    "start": "node ./bin/cli.js",
     "postinstall": "node ./scripts/install-binaries.js"
   },
-  "license": "MIT"
+  "keywords": [
+    "youtube",
+    "audio",
+    "splitter",
+    "spleeter",
+    "ffmpeg",
+    "yt-dlp",
+    "roflsec"
+  ],
+  "author": "RoflSec",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin/cli.js",
+    "bin/splitit-spleeter",
+    "scripts/install-binaries.js",
+    "scripts/spleeter-launcher.py",
+    "bin/ffmpeg",
+    "bin/yt-dlp"
+  ]
 }

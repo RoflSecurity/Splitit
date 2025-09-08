@@ -1,30 +1,31 @@
-#!/usr/bin/env bash
-BIN_DIR="$(dirname "$0")"
-INPUT="$1"
-OUTPUT_DIR="$PWD/output"
+#!/data/data/com.termux/files/usr/bin/bash
 
-if [ -z "$INPUT" ]; then
-  echo "Usage: splitit-spleeter <file.mp3>"
-  exit 1
-fi
+URL="$1"
 
-if [ ! -x "$BIN_DIR/yt-dlp" ]; then
-  echo "yt-dlp not found. Run install-binaries.js first."
-  exit 1
-fi
+# Télécharger le titre propre pour nommer les fichiers
+TITLE=$(yt-dlp --get-title "$URL")
+SAFE_TITLE=$(echo "$TITLE" | sed 's/[^a-zA-Z0-9_-]/_/g')
+WAVFILE="${SAFE_TITLE}.wav"
 
-if [ ! -x "$BIN_DIR/ffmpeg" ]; then
-  echo "ffmpeg not found. Run install-binaries.js first."
-  exit 1
-fi
+# Télécharger et convertir en WAV
+yt-dlp -x --audio-format wav -o "$WAVFILE" "$URL"
 
-if [ ! -d "$BIN_DIR/proot-debian" ]; then
-  echo "Proot Debian environment not found. Run install-binaries.js first."
-  exit 1
-fi
+# Créer dossier output si inexistant
+mkdir -p ./output
 
-mkdir -p "$OUTPUT_DIR"
+# Séparer voix/instrumental avec Spleeter
+spleeter separate -p spleeter:2stems -o ./output "$WAVFILE"
 
-echo "Running Spleeter inside Proot..."
-proot-distro login debian -- bash -c "spleeter separate -i '$INPUT' -p spleeter:2stems -o '/data/data/com.termux/files/home/output'"
-echo "Output files are in $OUTPUT_DIR"
+# Spleeter génère : ./output/<nom_du_fichier>/vocals.wav et accompaniment.wav
+VOX="./output/$SAFE_TITLE/vocals.wav"
+INST="./output/$SAFE_TITLE/accompaniment.wav"
+
+# Convertir en MP3
+ffmpeg -i "$VOX" -q:a 0 "${SAFE_TITLE}_vocals.mp3"
+ffmpeg -i "$INST" -q:a 0 "${SAFE_TITLE}_instrumental.mp3"
+ffmpeg -i "$WAVFILE" -q:a 0 "${SAFE_TITLE}_full.mp3"
+
+# Supprimer fichiers WAV pour économiser de la place
+rm -f "$WAVFILE" "$VOX" "$INST"
+
+echo "✅ Fichiers générés : ${SAFE_TITLE}_vocals.mp3, ${SAFE_TITLE}_instrumental.mp3, ${SAFE_TITLE}_full.mp3"
