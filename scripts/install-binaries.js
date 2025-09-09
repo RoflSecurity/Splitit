@@ -9,15 +9,16 @@ import process from 'process';
 
 const streamPipeline = promisify(pipeline);
 
-const BIN_DIR = path.resolve(
-  path.dirname(process.argv[1]),
-  '../bin'
-);
+// Fix cross-platform path: utilise import.meta.url pour ES Modules
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const BIN_DIR = path.join(__dirname, '..', 'bin');
 
 const BINARIES = [
   {
     name: 'ffmpeg',
-    url: ' https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-essentials.zip',
+    url: 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-essentials.zip',
     filename: os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
   },
   {
@@ -40,7 +41,9 @@ async function downloadBinary(bin) {
       // Suivi des redirections
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         console.log(`🔀 Redirected to ${res.headers.location}`);
-        https.get(res.headers.location, res2 => res2.pipe(fs.createWriteStream(destPath)).on('finish', resolve)).on('error', reject);
+        https.get(res.headers.location, res2 =>
+          res2.pipe(fs.createWriteStream(destPath)).on('finish', resolve)
+        ).on('error', reject);
       } else if (res.statusCode === 200) {
         res.pipe(fs.createWriteStream(destPath)).on('finish', resolve);
       } else {

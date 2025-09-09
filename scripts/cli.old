@@ -36,15 +36,6 @@ if (!fs.existsSync(YTDLP_PATH)) {
   process.exit(1);
 }
 
-// Vérifie si ytdl-core et sanitize-filename sont présents
-try {
-  require.resolve('ytdl-core');
-  require.resolve('sanitize-filename');
-} catch (err) {
-  console.error('❌ Missing dependencies. Run `npm i` or reinstall the package.');
-  process.exit(1);
-}
-
 (async () => {
   try {
     console.log('🎵 Fetching video info...');
