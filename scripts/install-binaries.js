@@ -1,70 +1,71 @@
 #!/usr/bin/env node
-
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
-import { fileURLToPath } from 'url';
-import { exec } from 'child_process';
+import { pipeline } from 'stream';
+import { promisify } from 'util';
 import os from 'os';
+import process from 'process';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const streamPipeline = promisify(pipeline);
 
-const BIN_DIR = path.join(__dirname, '..', 'bin');
-fs.mkdirSync(BIN_DIR, { recursive: true });
+const BIN_DIR = path.resolve(
+  path.dirname(process.argv[1]),
+  '../bin'
+);
 
-async function download(url, dest) {
-    return new Promise((resolve, reject) => {
-        const file = fs.createWriteStream(dest);
-        https.get(url, res => {
-            if (res.statusCode === 302 || res.statusCode === 301) {
-                // gérer redirection
-                download(res.headers.location, dest).then(resolve).catch(reject);
-                return;
-            }
-            if (res.statusCode !== 200) return reject(new Error(`Erreur HTTP ${res.statusCode} pour ${url}`));
-            res.pipe(file);
-            file.on('finish', () => {
-                file.close(resolve);
-            });
-        }).on('error', err => {
-            fs.unlink(dest, () => reject(err));
-        });
-    });
+const BINARIES = [
+  {
+    name: 'ffmpeg',
+    url: 'https://ffmpeg.org/releases/ffmpeg-release-essentials.zip',
+    filename: os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+  },
+  {
+    name: 'yt-dlp',
+    url: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp' + (os.platform() === 'win32' ? '.exe' : ''),
+    filename: os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'
+  }
+];
+
+async function downloadBinary(bin) {
+  const destPath = path.join(BIN_DIR, bin.filename);
+  if (fs.existsSync(destPath)) {
+    console.log(`✅ ${bin.name} already exists at ${destPath}`);
+    return;
+  }
+
+  console.log(`⬇️ Downloading ${bin.name}...`);
+  await new Promise((resolve, reject) => {
+    https.get(bin.url, (res) => {
+      // Suivi des redirections
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        console.log(`🔀 Redirected to ${res.headers.location}`);
+        https.get(res.headers.location, res2 => res2.pipe(fs.createWriteStream(destPath)).on('finish', resolve)).on('error', reject);
+      } else if (res.statusCode === 200) {
+        res.pipe(fs.createWriteStream(destPath)).on('finish', resolve);
+      } else {
+        reject(new Error(`Erreur HTTP ${res.statusCode} pour ${bin.url}`));
+      }
+    }).on('error', reject);
+  });
+
+  if (os.platform() !== 'win32') {
+    fs.chmodSync(destPath, 0o755);
+  }
+  console.log(`✅ ${bin.name} installed at ${destPath}`);
 }
 
-async function installYtDlp() {
-    const ytDlpFile = os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
-    const dest = path.join(BIN_DIR, ytDlpFile);
-    if (fs.existsSync(dest)) return;
-    console.log('Téléchargement de yt-dlp...');
-    await download(
-        'https://github.com/yt-dlp/yt-dlp/releases/latest/download/' + ytDlpFile,
-        dest
-    );
-    if (os.platform() !== 'win32') {
-        await new Promise(res => exec(`chmod +x "${dest}"`, res));
-    }
-    console.log('✅ yt-dlp installé:', dest);
-}
-
-async function installFfmpeg() {
-    const ffmpegFile = os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
-    const dest = path.join(BIN_DIR, ffmpegFile);
-    if (fs.existsSync(dest)) return;
-    console.log('Téléchargement de ffmpeg...');
-    // Simplification : tu peux remplacer cette URL par la dernière build officielle pour chaque OS
-    const url = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip';
-    console.log('⚠️ Téléchargement manuel recommandé pour ffmpeg sur cette plateforme');
-}
-
-(async () => {
+async function installAll() {
+  if (!fs.existsSync(BIN_DIR)) {
+    fs.mkdirSync(BIN_DIR, { recursive: true });
+  }
+  for (const bin of BINARIES) {
     try {
-        await installYtDlp();
-        await installFfmpeg();
-        console.log('✅ Binaries installés dans:', BIN_DIR);
+      await downloadBinary(bin);
     } catch (err) {
-        console.error('❌ Erreur lors de l’installation des binaries:', err);
-        process.exit(1);
+      console.error(`❌ Failed to install ${bin.name}:`, err.message);
     }
-})();
+  }
+}
+
+installAll();

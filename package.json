@@ -1,6 +1,6 @@
 {
   "name": "@roflsec/splitit",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "CLI pour télécharger et séparer les pistes audio de vidéos YouTube (plug-n-play, multi-OS, Termux supporté)",
   "main": "scripts/cli.js",
   "bin": {
@@ -25,7 +25,8 @@
   "author": "RoflSecurity",
   "license": "MIT",
   "dependencies": {
-    "sanitize-filename": "^1.6.3"
+    "sanitize-filename": "^1.6.3",
+    "ytdl-core": "^4.2.0"
   },
   "engines": {
     "node": ">=18.0.0"
