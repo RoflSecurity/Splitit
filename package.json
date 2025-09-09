@@ -1,15 +1,29 @@
 {
   "name": "@roflsec/splitit",
-  "version": "0.0.14",
-  "description": "Télécharge et sépare l'audio de vidéos YouTube",
-  "author": "roflsec",
+  "version": "1.0.1",
+  "description": "Split audio tracks from YouTube videos using yt-dlp, ffmpeg and Spleeter",
+  "main": "scripts/cli.js",
   "bin": {
-    "splitit": "./bin/splitit",
-    "splitit-clean": "./bin/splitit-clean",
-    "splitit-tree": "./scripts/tree.sh"
+    "splitit": "scripts/cli.js"
   },
+  "scripts": {
+    "postinstall": "node scripts/install-binaries.js"
+  },
+  "keywords": [
+    "youtube",
+    "audio",
+    "split",
+    "yt-dlp",
+    "ffmpeg",
+    "spleeter"
+  ],
+  "author": "RoflSecurity",
+  "license": "MIT",
   "dependencies": {
+    "axios": "^1.5.0",
     "sanitize-filename": "^1.6.3"
   },
-  "type": "module"
+  "engines": {
+    "node": ">=18"
+  }
 }
