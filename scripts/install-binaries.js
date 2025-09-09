@@ -17,7 +17,7 @@ const BIN_DIR = path.resolve(
 const BINARIES = [
   {
     name: 'ffmpeg',
-    url: 'https://ffmpeg.org/releases/ffmpeg-release-essentials.zip',
+    url: ' https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-essentials.zip',
     filename: os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
   },
   {
