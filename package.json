@@ -8,5 +8,8 @@
     "splitit-clean": "./bin/splitit-clean",
     "splitit-tree": "./scripts/tree.sh"
   },
+  "dependencies": {
+    "sanitize-filename": "^1.6.3"
+  },
   "type": "module"
 }
