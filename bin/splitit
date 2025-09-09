@@ -1,4 +1,11 @@
 #!/bin/bash
-# Wrapper pour lancer le CLI Node
-DIR="$(cd "$(dirname "$0")" && pwd)"
-node "$DIR/../scripts/cli.js" "$@"
+# Wrapper pour CLI Node
+# Récupère le chemin du module global ou local
+MODULE_PATH=$(dirname $(realpath "$0"))/../scripts
+if [ -d "$MODULE_PATH" ]; then
+    node "$MODULE_PATH/cli.js" "$@"
+else
+    # Fallback si installé globalement via npm
+    GLOBAL_PATH=$(npm root -g)/@roflsec/splitit/scripts
+    node "$GLOBAL_PATH/cli.js" "$@"
+fi

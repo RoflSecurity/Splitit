@@ -1,39 +1,100 @@
-# Splitit - RoflSec Edition
+# ![SplitIt Logo](./misc/logo.png) SplitIt 🎵💥
 
-Splitit is the ultimate YouTube audio splitter for chaos lovers. Download any YouTube video and automatically separate it into **vocals**, **instrumental**, and **full audio**. Works on **Windows, Linux, Mac**, and **Termux**. Everything is automatic, zero hassle, full Lulz.
+**Author:** RoflSec  
+**Version:** `0.0.10`  <!-- dynamically updated by clean.sh -->
 
-## Installation
+---
 
+## Installation 🌍
+
+**From NPM (global):**
 ```bash
 npm install -g @roflsec/splitit
-
-Termux (Android): yt-dlp and ffmpeg installed automatically. Spleeter requires Python <=3.10 in Proot Debian. Interactive prompt guides installation.
-
-Windows/Linux/Mac: full installation of Python, Spleeter, and TensorFlow CPU.
-
-
-Usage
-
-splitit <YouTube URL>
-
-Downloads audio in mp3 format.
-
-Separate stems with:
+```
+**From GitHub:**
+```
+git clone https://github.com/RoflSecurity/Splitit
+cd splitit
+npm i -g .
+```
+> ✅ Now splitit is globally available, wherever you run it.
 
 
-./bin/splitit-spleeter <file.mp3>
-
-Output saved in ./output.
-
-Works on x86, x64, and ARM (Termux) for maximum mayhem.
-
-License
-
-MIT
 
 
 ---
 
-RoflSec tip: Install, run, and let the chaos unfold. Perfect for audio hackers, music magicians, or anyone who loves Lulz.
+What is this? 🤔
+
+SplitIt is your ultimate music tool to separate audio tracks from any YouTube URL.
+
+🎹 Stems (vocals & instrumental) for Windows/Linux/Mac
+
+📱 Termux-friendly: just MP3 + WAV to avoid headaches
+
+
+No more fuss with Spleeter, Docker, or broken paths.
+
+
+---
+
+Usage 🚀
+```
+splitit "<YouTube URL>"
+```
+Example:
+```
+splitit "https://youtu.be/SJjBXzSc-IA?feature=shared"
+```
+Termux → MP3 download + WAV conversion only
+
+Windows/Linux/Mac → Full Spleeter separation (2–3 stems depending on mode)
+
+
+Output:
+The output folder is created in the current working directory and contains your processed audio files.
+
+
+---
+
+Architecture 🏗️
+
+splitit/
+├─ bin/                     # CLI wrapper
+│  └─ splitit
+├─ scripts/                 # Main scripts
+│  ├─ cli.js                # Node CLI
+│  ├─ download.sh           # Download + convert audio
+│  ├─ spleeter-launcher.py  # Spleeter wrapper
+│  ├─ install-binaries.js   # Install necessary binaries
+│  └─ clean.sh              # Dev cleanup & README version bump
+├─ output/                  # Audio output
+├─ misc/                    # Logo etc.
+├─ package.json
+└─ README.md
+
+
+---
+
+Tips & Tricks 💡
+
+npm run clean → cleans the repo & updates README version automatically
+
+chmod +x bin/splitit if you get permission errors
+
+Spleeter is optional on Termux → no errors if missing
+
+
+
+---
+
+Lulz Status 😎
+
+Plug’n’play for Windows/Linux/Mac
+
+Termux supported without Spleeter
+
+Author: RoflSec, the reference for robust infra protection & testing
+
 
 ---

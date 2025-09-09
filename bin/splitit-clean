@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# bin/splitit-clean
+# Wrapper pour appeler le vrai clean.sh depuis le projet
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+bash "$DIR/scripts/clean.sh" "$@"
