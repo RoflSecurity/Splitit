@@ -51,7 +51,7 @@ Termux → MP3 download + WAV conversion only
 Windows/Linux/Mac → Full Spleeter separation (2–3 stems depending on mode)
 
 
-Output: 1 files in output/
+Output: 0 files in output/
 The output folder is created in the current working directory and contains your processed audio files.
 
 

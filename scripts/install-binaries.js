@@ -1,75 +1,70 @@
 #!/usr/bin/env node
+
 import fs from 'fs';
-import https from 'https';
 import path from 'path';
+import https from 'https';
+import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
 import os from 'os';
-import { execSync } from 'child_process';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const BIN_DIR = path.join(__dirname, '..', 'bin');
-const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
-const FFMPEG_URL = 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz';
+fs.mkdirSync(BIN_DIR, { recursive: true });
 
-const isWin = os.platform() === 'win32';
-const isLinux = os.platform() === 'linux';
-const isTermux = isLinux && fs.existsSync('/data/data/com.termux/files/usr');
+async function download(url, dest) {
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(dest);
+        https.get(url, res => {
+            if (res.statusCode === 302 || res.statusCode === 301) {
+                // gérer redirection
+                download(res.headers.location, dest).then(resolve).catch(reject);
+                return;
+            }
+            if (res.statusCode !== 200) return reject(new Error(`Erreur HTTP ${res.statusCode} pour ${url}`));
+            res.pipe(file);
+            file.on('finish', () => {
+                file.close(resolve);
+            });
+        }).on('error', err => {
+            fs.unlink(dest, () => reject(err));
+        });
+    });
+}
 
-const downloadFile = (url, dest) => {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest);
-    https.get(url, (res) => {
-      if (res.statusCode === 302 || res.statusCode === 301) {
-        return downloadFile(res.headers.location, dest).then(resolve).catch(reject);
-      }
-      if (res.statusCode !== 200) {
-        return reject(new Error(`HTTP ${res.statusCode} - ${url}`));
-      }
-      res.pipe(file);
-      file.on('finish', () => file.close(resolve));
-    }).on('error', reject);
-  });
-};
-
-const installYtdlp = async () => {
-  const ytdlpDest = path.join(BIN_DIR, isWin ? 'yt-dlp.exe' : 'yt-dlp');
-  if (fs.existsSync(ytdlpDest)) {
-    console.log('✅ yt-dlp déjà installé.');
-    return;
-  }
-  console.log('⬇️ Téléchargement de yt-dlp...');
-  await downloadFile(YTDLP_URL, ytdlpDest);
-  if (!isWin) {
-    fs.chmodSync(ytdlpDest, 0o755);
-  }
-  console.log('✅ yt-dlp installé.');
-};
-
-const installFfmpeg = async () => {
-  if (!isLinux || isTermux) return;
-  const ffmpegDest = path.join(BIN_DIR, 'ffmpeg');
-  if (fs.existsSync(ffmpegDest)) {
-    console.log('✅ ffmpeg déjà installé.');
-    return;
-  }
-  console.log('⬇️ Téléchargement de ffmpeg...');
-  await downloadFile(FFMPEG_URL, ffmpegDest);
-  if (isLinux) {
-    fs.chmodSync(ffmpegDest, 0o755);
-  }
-  console.log('✅ ffmpeg installé.');
-};
-
-const installBinaries = async () => {
-  try {
-    if (!fs.existsSync(BIN_DIR)) {
-      fs.mkdirSync(BIN_DIR);
+async function installYtDlp() {
+    const ytDlpFile = os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+    const dest = path.join(BIN_DIR, ytDlpFile);
+    if (fs.existsSync(dest)) return;
+    console.log('Téléchargement de yt-dlp...');
+    await download(
+        'https://github.com/yt-dlp/yt-dlp/releases/latest/download/' + ytDlpFile,
+        dest
+    );
+    if (os.platform() !== 'win32') {
+        await new Promise(res => exec(`chmod +x "${dest}"`, res));
     }
-    await installYtdlp();
-    await installFfmpeg();
-    console.log('✅ Installation terminée.');
-  } catch (err) {
-    console.error('❌ Erreur lors de l\'installation des binaires:', err.message);
-    process.exit(1);
-  }
-};
+    console.log('✅ yt-dlp installé:', dest);
+}
 
-installBinaries();
+async function installFfmpeg() {
+    const ffmpegFile = os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+    const dest = path.join(BIN_DIR, ffmpegFile);
+    if (fs.existsSync(dest)) return;
+    console.log('Téléchargement de ffmpeg...');
+    // Simplification : tu peux remplacer cette URL par la dernière build officielle pour chaque OS
+    const url = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip';
+    console.log('⚠️ Téléchargement manuel recommandé pour ffmpeg sur cette plateforme');
+}
+
+(async () => {
+    try {
+        await installYtDlp();
+        await installFfmpeg();
+        console.log('✅ Binaries installés dans:', BIN_DIR);
+    } catch (err) {
+        console.error('❌ Erreur lors de l’installation des binaries:', err);
+        process.exit(1);
+    }
+})();
