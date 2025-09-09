@@ -1,6 +1,6 @@
 {
   "name": "@roflsec/splitit",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Télécharge et sépare l'audio de vidéos YouTube",
   "author": "roflsec",
   "bin": {
