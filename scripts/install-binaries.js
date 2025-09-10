@@ -6,10 +6,9 @@ import { pipeline } from 'stream';
 import { promisify } from 'util';
 import os from 'os';
 import process from 'process';
-import { fileURLToPath } from 'url';
-import unzipper from 'unzipper';
 
 const streamPipeline = promisify(pipeline);
+import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const BIN_DIR = path.join(__dirname, '..', 'bin');
@@ -38,6 +37,7 @@ async function downloadFile(url, destPath) {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        console.log(`🔀 Redirected to ${res.headers.location}`);
         downloadFile(res.headers.location, destPath).then(resolve).catch(reject);
       } else if (res.statusCode === 200) {
         const fileStream = fs.createWriteStream(destPath);
@@ -52,12 +52,6 @@ async function downloadFile(url, destPath) {
 }
 
 async function downloadBinary(bin) {
-  const destPath = path.join(BIN_DIR, bin.filename);
-  if (fs.existsSync(destPath)) {
-    console.log(`✅ ${bin.name} already exists at ${destPath}`);
-    return;
-  }
-
   // --- DEBUT LOGIQUE TERMUX ---
   if (process.env.TERMUX_VERSION && bin.name === 'ffmpeg') {
     const { execSync } = await import('child_process');
@@ -72,6 +66,12 @@ async function downloadBinary(bin) {
   }
   // --- FIN LOGIQUE TERMUX ---
 
+  const destPath = path.join(BIN_DIR, bin.filename);
+  if (fs.existsSync(destPath)) {
+    console.log(`✅ ${bin.name} already exists at ${destPath}`);
+    return;
+  }
+
   for (const url of bin.urls) {
     try {
       console.log(`⬇️ Downloading ${bin.name} from ${url}...`);
@@ -80,11 +80,23 @@ async function downloadBinary(bin) {
 
       if (bin.zip) {
         console.log(`📦 Extracting ${bin.name}...`);
+        const unzipper = await import('unzipper');
         await fs.createReadStream(tmpPath).pipe(unzipper.Extract({ path: BIN_DIR })).promise();
         fs.unlinkSync(tmpPath);
       }
 
-      if (os.platform() !== 'win32') fs.chmodSync(destPath, 0o755);
+      if (os.platform() !== 'win32') {
+        fs.chmodSync(destPath, 0o755);
+      } else {
+        // --- DEBUT LOGIQUE WINDOWS PATH ---
+        const currentPath = process.env.PATH || '';
+        if (!currentPath.includes(BIN_DIR)) {
+          process.env.PATH = `${BIN_DIR};${currentPath}`;
+          console.log(`✅ Added ${BIN_DIR} to PATH for Windows`);
+        }
+        // --- FIN LOGIQUE WINDOWS PATH ---
+      }
+
       console.log(`✅ ${bin.name} installed at ${destPath}`);
       return;
     } catch (err) {
