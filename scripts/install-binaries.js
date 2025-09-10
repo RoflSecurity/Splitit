@@ -42,7 +42,6 @@ async function installFfmpeg() {
     return ffmpegPath;
   }
 
-  // --- DEBUT LOGIQUE TERMUX ---
   if (process.env.TERMUX_VERSION) {
     const { execSync } = await import('child_process');
     try {
@@ -54,7 +53,6 @@ async function installFfmpeg() {
       console.warn('⚠️ pkg install failed, falling back to download...');
     }
   }
-  // --- FIN LOGIQUE TERMUX ---
 
   console.log('⬇️ Downloading ffmpeg...');
   const urls = os.platform() === 'win32'
@@ -95,8 +93,15 @@ async function installYtdlp() {
 
 (async () => {
   try {
-    await installFfmpeg();
-    await installYtdlp();
+    const ffmpegPath = await installFfmpeg();
+    const ytdlpPath = await installYtdlp();
+
+    // --- Ajout BIN_DIR au PATH sur Windows pour plug-n-play ---
+    if (os.platform() === 'win32') {
+      process.env.PATH = `${BIN_DIR};${process.env.PATH}`;
+      console.log(`🔧 Added ${BIN_DIR} to PATH for this session`);
+    }
+
   } catch (err) {
     console.error(err.message);
     process.exit(1);

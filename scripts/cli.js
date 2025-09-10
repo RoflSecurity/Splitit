@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import sanitize from 'sanitize-filename';
 import os from 'os';
 import process from 'process';
-
 import { fileURLToPath } from 'url';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -28,15 +28,19 @@ if (process.env.TERMUX_VERSION) {
   console.log(`📦 Termux detected, using ffmpeg at ${FFMPEG_PATH}`);
 }
 
-if (!fs.existsSync(FFMPEG_PATH)) {
-  console.error('❌ ffmpeg not found. Please run install-binaries or install ffmpeg manually.');
-  process.exit(1);
+// Vérification + réinstallation si manquant
+function ensureBinaries() {
+  let missing = [];
+  if (!fs.existsSync(FFMPEG_PATH)) missing.push('ffmpeg');
+  if (!fs.existsSync(YTDLP_PATH)) missing.push('yt-dlp');
+
+  if (missing.length > 0) {
+    console.log(`⚠️  Missing binaries: ${missing.join(', ')} → reinstalling...`);
+    execSync(`node ${path.join(__dirname, 'install-binaries.js')}`, { stdio: 'inherit' });
+  }
 }
 
-if (!fs.existsSync(YTDLP_PATH)) {
-  console.error('❌ yt-dlp not found. Please run install-binaries first.');
-  process.exit(1);
-}
+ensureBinaries();
 
 (async () => {
   try {
