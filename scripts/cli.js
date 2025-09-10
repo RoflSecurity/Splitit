@@ -21,8 +21,8 @@ const url = args[0];
 const FLAGS = args.slice(1);
 
 const BIN_DIR = path.join(__dirname, '..', 'bin');
-const FFMPEG_PATH = path.join(BIN_DIR, os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
-const YTDLP_PATH = path.join(BIN_DIR, os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+let FFMPEG_PATH = path.join(BIN_DIR, os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+let YTDLP_PATH = path.join(BIN_DIR, os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 
 // --- DEBUT LOGIQUE TERMUX ---
 if (process.env.TERMUX_VERSION) {
