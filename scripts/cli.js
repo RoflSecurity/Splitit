@@ -22,8 +22,24 @@ const url = args[0];
 const FLAGS = args.slice(1);
 
 const BIN_DIR = path.join(__dirname, '..', 'bin');
-const FFMPEG_PATH = path.join(BIN_DIR, os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+let FFMPEG_PATH = path.join(BIN_DIR, os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
 const YTDLP_PATH = path.join(BIN_DIR, os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+
+// --- DEBUT LOGIQUE TERMUX POUR CLI ---
+if (process.env.TERMUX_VERSION) {
+  try {
+    // Cherche ffmpeg dans le PATH de Termux
+    const { execSync } = await import('child_process');
+    const ffmpegInPath = execSync('which ffmpeg', { encoding: 'utf-8' }).trim();
+    if (ffmpegInPath) {
+      FFMPEG_PATH = ffmpegInPath;
+      console.log(`📦 Termux detected, using ffmpeg at ${FFMPEG_PATH}`);
+    }
+  } catch {
+    // Pas trouvé, on laisse FFMPEG_PATH sur bin/ffmpeg et message d'erreur normal
+  }
+}
+// --- FIN LOGIQUE TERMUX POUR CLI ---
 
 if (!fs.existsSync(FFMPEG_PATH)) {
   console.error('❌ ffmpeg not found. Please use install-binaries first.');
