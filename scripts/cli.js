@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// cli.js
 import fs from 'fs';
 import path from 'path';
 import { spawn, execSync } from 'child_process';
@@ -18,7 +19,6 @@ if (!args.length) {
 const url = args[0];
 
 const BIN_DIR = path.join(__dirname, '..', 'bin');
-
 let FFMPEG_PATH = path.join(BIN_DIR, os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
 const YTDLP_PATH = path.join(BIN_DIR, os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 
@@ -75,9 +75,12 @@ ensureBinaries();
 
               const separatedFolder = path.join(outputDir, path.basename(audioFileName, '.mp3'));
               if (fs.existsSync(separatedFolder)) {
-                fs.renameSync(path.join(separatedFolder, 'accompaniment.wav'), path.join(outputDir, 'instrumentale.wav'));
-                fs.renameSync(path.join(separatedFolder, 'vocals.wav'), path.join(outputDir, 'voix.wav'));
+                // Mix = audio original
                 fs.copyFileSync(audioFilePath, path.join(outputDir, 'mix.wav'));
+                // Voix & Instrumentale
+                fs.renameSync(path.join(separatedFolder, 'vocals.wav'), path.join(outputDir, 'voix.wav'));
+                fs.renameSync(path.join(separatedFolder, 'accompaniment.wav'), path.join(outputDir, 'instrumentale.wav'));
+                // Supprimer le dossier temporaire
                 fs.rmSync(separatedFolder, { recursive: true, force: true });
                 console.log(`✅ Stems generated for ${audioFileName}`);
               } else {
@@ -88,7 +91,7 @@ ensureBinaries();
           });
         }
       } else {
-        console.log('ℹ️ Separation skipped on Termux');
+        console.log('ℹ️ Separation skipped on Termux (only MP3 + WAV available)');
       }
     });
   } catch (err) {

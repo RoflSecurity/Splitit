@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // install-binaries.js
 import fs from 'fs';
 import path from 'path';
@@ -7,13 +8,14 @@ import https from 'https';
 import { pipeline } from 'stream';
 import { promisify } from 'util';
 import unzipper from 'unzipper';
+import { execSync } from 'child_process';
 
 const streamPipeline = promisify(pipeline);
-
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const BIN_DIR = path.join(__dirname, '..', 'bin');
+const ROOT_DIR = path.resolve(__dirname, '..');
+const BIN_DIR = path.join(ROOT_DIR, 'bin');
 
 if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
 
@@ -43,7 +45,6 @@ async function installFfmpeg() {
   }
 
   if (process.env.TERMUX_VERSION) {
-    const { execSync } = await import('child_process');
     try {
       console.log('📦 Termux detected, installing ffmpeg via pkg...');
       execSync('pkg install -y ffmpeg', { stdio: 'inherit' });
@@ -91,13 +92,33 @@ async function installYtdlp() {
   return ytdlpPath;
 }
 
-// --- Aucun ajout ni fonctionnalité non demandée ---
+async function installSpleeter() {
+  if (process.env.TERMUX_VERSION) {
+    console.log('ℹ️ Termux detected, skipping Spleeter installation');
+    return;
+  }
+
+  try {
+    execSync('spleeter --version', { stdio: 'ignore' });
+    console.log('✅ Spleeter already installed');
+  } catch {
+    console.log('⬇️ Installing Spleeter via pip...');
+    try {
+      execSync('python3 -m pip install --upgrade pip', { stdio: 'inherit' });
+      execSync('python3 -m pip install spleeter', { stdio: 'inherit' });
+      console.log('✅ Spleeter installed');
+    } catch (err) {
+      console.warn('⚠️ Failed to install Spleeter:', err.message);
+    }
+  }
+}
+
 (async () => {
   try {
     await installFfmpeg();
     await installYtdlp();
+    await installSpleeter();
 
-    // --- Ajout BIN_DIR au PATH sur Windows pour plug-n-play ---
     if (os.platform() === 'win32') {
       process.env.PATH = `${BIN_DIR};${process.env.PATH}`;
       console.log(`🔧 Added ${BIN_DIR} to PATH for this session`);
