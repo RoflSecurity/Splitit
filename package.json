@@ -1,6 +1,6 @@
 {
   "name": "@roflsec/splitit",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "CLI pour télécharger et séparer les pistes audio de vidéos YouTube (plug-n-play, multi-OS, Termux supporté)",
   "main": "scripts/cli.js",
   "bin": {

@@ -1,71 +1,104 @@
-#!/usr/bin/env node
-import { execSync } from 'child_process';
+// install-binaries.js
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
+import { pipeline } from 'stream';
+import { promisify } from 'util';
 import os from 'os';
+import process from 'process';
 import { fileURLToPath } from 'url';
+import unzipper from 'unzipper';
 
+const streamPipeline = promisify(pipeline);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const BIN_DIR = path.join(__dirname, '..', 'bin');
-if (!fs.existsSync(BIN_DIR)) {
-  fs.mkdirSync(BIN_DIR);
+
+const BINARIES = [
+  {
+    name: 'ffmpeg',
+    urls: [
+      'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-essentials.zip',
+      'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip'
+    ],
+    filename: os.platform() === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
+    zip: true
+  },
+  {
+    name: 'yt-dlp',
+    urls: [
+      'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp' + (os.platform() === 'win32' ? '.exe' : '')
+    ],
+    filename: os.platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
+    zip: false
+  }
+];
+
+async function downloadFile(url, destPath) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        downloadFile(res.headers.location, destPath).then(resolve).catch(reject);
+      } else if (res.statusCode === 200) {
+        const fileStream = fs.createWriteStream(destPath);
+        res.pipe(fileStream);
+        fileStream.on('finish', () => fileStream.close(resolve));
+        fileStream.on('error', reject);
+      } else {
+        reject(new Error(`Erreur HTTP ${res.statusCode} pour ${url}`));
+      }
+    }).on('error', reject);
+  });
 }
 
-function isTermux() {
-  return Boolean(process.env.TERMUX_VERSION || process.env.PREFIX?.includes('com.termux'));
+async function downloadBinary(bin) {
+  const destPath = path.join(BIN_DIR, bin.filename);
+  if (fs.existsSync(destPath)) {
+    console.log(`✅ ${bin.name} already exists at ${destPath}`);
+    return;
+  }
+
+  // --- DEBUT LOGIQUE TERMUX ---
+  if (process.env.TERMUX_VERSION && bin.name === 'ffmpeg') {
+    const { execSync } = await import('child_process');
+    try {
+      console.log('📦 Termux detected, installing ffmpeg via pkg...');
+      execSync('pkg install -y ffmpeg', { stdio: 'inherit' });
+      console.log('✅ ffmpeg installed via pkg');
+      return; // Skip download
+    } catch (err) {
+      console.warn('⚠️ pkg install failed, falling back to download...');
+    }
+  }
+  // --- FIN LOGIQUE TERMUX ---
+
+  for (const url of bin.urls) {
+    try {
+      console.log(`⬇️ Downloading ${bin.name} from ${url}...`);
+      const tmpPath = path.join(BIN_DIR, bin.zip ? `${bin.name}.zip` : bin.filename);
+      await downloadFile(url, tmpPath);
+
+      if (bin.zip) {
+        console.log(`📦 Extracting ${bin.name}...`);
+        await fs.createReadStream(tmpPath).pipe(unzipper.Extract({ path: BIN_DIR })).promise();
+        fs.unlinkSync(tmpPath);
+      }
+
+      if (os.platform() !== 'win32') fs.chmodSync(destPath, 0o755);
+      console.log(`✅ ${bin.name} installed at ${destPath}`);
+      return;
+    } catch (err) {
+      console.warn(`⚠️ Failed to download from ${url}: ${err.message}`);
+    }
+  }
+  console.error(`❌ Could not install ${bin.name}, all sources failed.`);
 }
 
-async function installTermux() {
-  console.log('📦 Termux detected, installing ffmpeg via pkg...');
-  try {
-    execSync('pkg install -y ffmpeg', { stdio: 'inherit' });
-    console.log('✅ ffmpeg installed via pkg');
-  } catch (err) {
-    console.error('❌ Failed to install ffmpeg via pkg:', err.message);
-  }
-
-  console.log('📦 Installing yt-dlp via pip...');
-  try {
-    execSync('pip install --upgrade yt-dlp', { stdio: 'inherit' });
-    console.log('✅ yt-dlp installed via pip');
-  } catch (err) {
-    console.error('❌ Failed to install yt-dlp via pip:', err.message);
+async function installAll() {
+  if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
+  for (const bin of BINARIES) {
+    await downloadBinary(bin);
   }
 }
 
-async function installDesktop() {
-  const isWin = os.platform() === 'win32';
-  const ffmpegUrl = isWin
-    ? 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip'
-    : 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz';
-  const ytDlpUrl = isWin
-    ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
-    : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
-
-  const ffmpegPath = path.join(BIN_DIR, isWin ? 'ffmpeg.exe' : 'ffmpeg');
-  const ytDlpPath = path.join(BIN_DIR, isWin ? 'yt-dlp.exe' : 'yt-dlp');
-
-  if (!fs.existsSync(ffmpegPath)) {
-    console.log('⬇️ Downloading ffmpeg...');
-    execSync(`curl -L ${ffmpegUrl} -o ${ffmpegPath}`, { stdio: 'inherit' });
-    fs.chmodSync(ffmpegPath, 0o755);
-  }
-
-  if (!fs.existsSync(ytDlpPath)) {
-    console.log('⬇️ Downloading yt-dlp...');
-    execSync(`curl -L ${ytDlpUrl} -o ${ytDlpPath}`, { stdio: 'inherit' });
-    fs.chmodSync(ytDlpPath, 0o755);
-  }
-
-  console.log('✅ Binaries installed in bin/');
-}
-
-(async () => {
-  if (isTermux()) {
-    await installTermux();
-  } else {
-    await installDesktop();
-  }
-})();
+installAll();
