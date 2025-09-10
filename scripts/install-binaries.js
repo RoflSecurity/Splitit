@@ -1,5 +1,4 @@
-// install-binaries.js
-//#!/usr/bin/env node
+#!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -89,6 +88,25 @@ async function downloadBinary(bin) {
 
 async function installAll() {
   if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
+
+  // --- Début bloc Termux ---
+  if (os.platform() === 'android' && fs.existsSync('/data/data/com.termux/files/usr/bin/pkg')) {
+    console.log('📦 Detected Termux, installing binaries via pkg...');
+    const { spawnSync } = await import('child_process');
+    const packages = ['ffmpeg', 'yt-dlp'];
+    for (const pkgName of packages) {
+      const res = spawnSync('pkg', ['install', '-y', pkgName], { stdio: 'inherit' });
+      if (res.status !== 0) {
+        console.warn(`⚠️ Failed to install ${pkgName} via pkg`);
+      } else {
+        console.log(`✅ ${pkgName} installed via pkg`);
+      }
+    }
+    // Skip manual download if Termux installation succeeded
+    return;
+  }
+  // --- Fin bloc Termux ---
+
   for (const bin of BINARIES) {
     await downloadBinary(bin);
   }
