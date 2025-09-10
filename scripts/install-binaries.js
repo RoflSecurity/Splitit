@@ -1,4 +1,4 @@
-// install-binaries.js
+#!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -6,6 +6,7 @@ import { pipeline } from 'stream';
 import { promisify } from 'util';
 import os from 'os';
 import process from 'process';
+import unzipper from 'unzipper';
 
 const streamPipeline = promisify(pipeline);
 import { fileURLToPath } from 'url';
@@ -52,6 +53,12 @@ async function downloadFile(url, destPath) {
 }
 
 async function downloadBinary(bin) {
+  const destPath = path.join(BIN_DIR, bin.filename);
+  if (fs.existsSync(destPath)) {
+    console.log(`✅ ${bin.name} already exists at ${destPath}`);
+    return;
+  }
+
   // --- DEBUT LOGIQUE TERMUX ---
   if (process.env.TERMUX_VERSION && bin.name === 'ffmpeg') {
     const { execSync } = await import('child_process');
@@ -59,18 +66,12 @@ async function downloadBinary(bin) {
       console.log('📦 Termux detected, installing ffmpeg via pkg...');
       execSync('pkg install -y ffmpeg', { stdio: 'inherit' });
       console.log('✅ ffmpeg installed via pkg');
-      return; // Skip download
+      return;
     } catch (err) {
       console.warn('⚠️ pkg install failed, falling back to download...');
     }
   }
   // --- FIN LOGIQUE TERMUX ---
-
-  const destPath = path.join(BIN_DIR, bin.filename);
-  if (fs.existsSync(destPath)) {
-    console.log(`✅ ${bin.name} already exists at ${destPath}`);
-    return;
-  }
 
   for (const url of bin.urls) {
     try {
@@ -80,24 +81,21 @@ async function downloadBinary(bin) {
 
       if (bin.zip) {
         console.log(`📦 Extracting ${bin.name}...`);
-        const unzipper = await import('unzipper');
         await fs.createReadStream(tmpPath).pipe(unzipper.Extract({ path: BIN_DIR })).promise();
         fs.unlinkSync(tmpPath);
       }
 
-      if (os.platform() !== 'win32') {
-        fs.chmodSync(destPath, 0o755);
-      } else {
-        // --- DEBUT LOGIQUE WINDOWS PATH ---
-        const currentPath = process.env.PATH || '';
-        if (!currentPath.includes(BIN_DIR)) {
-          process.env.PATH = `${BIN_DIR};${currentPath}`;
-          console.log(`✅ Added ${BIN_DIR} to PATH for Windows`);
-        }
-        // --- FIN LOGIQUE WINDOWS PATH ---
-      }
+      if (os.platform() !== 'win32') fs.chmodSync(destPath, 0o755);
 
       console.log(`✅ ${bin.name} installed at ${destPath}`);
+
+      // --- DEBUT LOGIQUE WINDOWS PATH ---
+      if (os.platform() === 'win32' && bin.name === 'ffmpeg') {
+        process.env.PATH = `${path.dirname(destPath)};${process.env.PATH}`;
+        console.log('✅ Windows PATH updated for ffmpeg');
+      }
+      // --- FIN LOGIQUE WINDOWS PATH ---
+
       return;
     } catch (err) {
       console.warn(`⚠️ Failed to download from ${url}: ${err.message}`);
@@ -108,9 +106,7 @@ async function downloadBinary(bin) {
 
 async function installAll() {
   if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
-  for (const bin of BINARIES) {
-    await downloadBinary(bin);
-  }
+  for (const bin of BINARIES) await downloadBinary(bin);
 }
 
 installAll();
