@@ -7,7 +7,7 @@
     "splitit": "scripts/cli.js"
   },
   "scripts": {
-    "postinstall": "node scripts/install-binaries.mjs",
+    "postinstall": "node scripts/install-binaries.js",
     "start": "node scripts/cli.js",
     "test": "echo \"Aucun test défini\" && exit 0"
   },
