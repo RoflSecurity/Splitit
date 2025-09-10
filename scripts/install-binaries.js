@@ -91,10 +91,11 @@ async function installYtdlp() {
   return ytdlpPath;
 }
 
+// --- Aucun ajout ni fonctionnalité non demandée ---
 (async () => {
   try {
-    const ffmpegPath = await installFfmpeg();
-    const ytdlpPath = await installYtdlp();
+    await installFfmpeg();
+    await installYtdlp();
 
     // --- Ajout BIN_DIR au PATH sur Windows pour plug-n-play ---
     if (os.platform() === 'win32') {

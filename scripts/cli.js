@@ -50,11 +50,45 @@ ensureBinaries();
 
     const ytdlpProc = spawn(YTDLP_PATH, ['-x', '--audio-format', 'mp3', '-o', path.join(outputDir, '%(title)s.%(ext)s'), url], { stdio: 'inherit' });
 
-    ytdlpProc.on('close', (code) => {
-      if (code === 0) {
-        console.log(`✅ Audio saved in ${outputDir}`);
-      } else {
+    ytdlpProc.on('close', async (code) => {
+      if (code !== 0) {
         console.error('❌ yt-dlp failed');
+        return;
+      }
+
+      console.log(`✅ Audio saved in ${outputDir}`);
+
+      // --- Séparation audio avec Spleeter sur Windows/Linux uniquement ---
+      if (!process.env.TERMUX_VERSION) {
+        const audioFiles = fs.readdirSync(outputDir).filter(f => f.endsWith('.mp3'));
+        for (const audioFileName of audioFiles) {
+          const audioFilePath = path.join(outputDir, audioFileName);
+          console.log(`🎚️  Separating stems for ${audioFileName}...`);
+
+          const spleeterProc = spawn('spleeter', ['separate', '-p', 'spleeter:2stems', '-o', outputDir, audioFilePath]);
+
+          await new Promise((resolve, reject) => {
+            spleeterProc.stdout.on('data', data => process.stdout.write(data.toString()));
+            spleeterProc.stderr.on('data', data => process.stderr.write(data.toString()));
+            spleeterProc.on('close', (code) => {
+              if (code !== 0) return reject(new Error(`Spleeter failed with code ${code}`));
+
+              const separatedFolder = path.join(outputDir, path.basename(audioFileName, '.mp3'));
+              if (fs.existsSync(separatedFolder)) {
+                fs.renameSync(path.join(separatedFolder, 'accompaniment.wav'), path.join(outputDir, 'instrumentale.wav'));
+                fs.renameSync(path.join(separatedFolder, 'vocals.wav'), path.join(outputDir, 'voix.wav'));
+                fs.copyFileSync(audioFilePath, path.join(outputDir, 'mix.wav'));
+                fs.rmSync(separatedFolder, { recursive: true, force: true });
+                console.log(`✅ Stems generated for ${audioFileName}`);
+              } else {
+                console.warn(`⚠️  Folder ${separatedFolder} not found`);
+              }
+              resolve();
+            });
+          });
+        }
+      } else {
+        console.log('ℹ️ Separation skipped on Termux');
       }
     });
   } catch (err) {

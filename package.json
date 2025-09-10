@@ -1,10 +1,14 @@
 {
   "name": "@roflsec/splitit",
-  "version": "1.0.25",
+  "version": "1.0.27",
   "description": "CLI pour télécharger et séparer les pistes audio de vidéos YouTube (plug-n-play, multi-OS, Termux supporté)",
   "main": "scripts/cli.js",
   "bin": {
-    "splitit": "scripts/cli.js"
+    "splitit": "scripts/cli.js",
+    "splitit-clean": "scripts/clean.js",
+    "splitit-tree": "scripts/tree.sh",
+    "splitit-termuxsetupstorage": "scripts/termux-setup-storage.sh",
+    "splitit-copytostorage": "scripts/output-termux-to-storage.sh"
   },
   "scripts": {
     "preinstall": "node scripts/install-binaries.js",
@@ -12,6 +16,7 @@
     "start": "node scripts/cli.js",
     "test": "echo \"Aucun test défini\" && exit 0"
   },
+  "type": "module",
   "keywords": [
     "youtube",
     "yt-dlp",
@@ -27,8 +32,7 @@
   "license": "MIT",
   "dependencies": {
     "sanitize-filename": "^1.6.3",
-    "unzipper": "^0.12.3",
-    "ytdl-core": "^4.2.0"
+    "unzipper": "^0.12.3"
   },
   "engines": {
     "node": ">=18.0.0"
