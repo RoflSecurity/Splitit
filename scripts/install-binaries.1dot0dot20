@@ -85,32 +85,28 @@ async function downloadBinary(bin) {
         fs.unlinkSync(tmpPath);
       }
 
-      if (os.platform() !== 'win32') {
-        fs.chmodSync(destPath, 0o755);
-      }
+      if (os.platform() !== 'win32') fs.chmodSync(destPath, 0o755);
 
       console.log(`✅ ${bin.name} installed at ${destPath}`);
+
+      // --- DEBUT LOGIQUE WINDOWS PATH ---
+      if (os.platform() === 'win32' && bin.name === 'ffmpeg') {
+        process.env.PATH = `${path.dirname(destPath)};${process.env.PATH}`;
+        console.log('✅ Windows PATH updated for ffmpeg');
+      }
+      // --- FIN LOGIQUE WINDOWS PATH ---
+
       return;
     } catch (err) {
       console.warn(`⚠️ Failed to download from ${url}: ${err.message}`);
     }
   }
-
   console.error(`❌ Could not install ${bin.name}, all sources failed.`);
 }
 
 async function installAll() {
   if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
-  for (const bin of BINARIES) {
-    await downloadBinary(bin);
-  }
-
-  // --- DEBUT LOGIQUE WINDOWS PATH ---
-  if (os.platform() === 'win32') {
-    process.env.PATH = `${BIN_DIR};${process.env.PATH}`;
-    console.log(`📦 Added ${BIN_DIR} to PATH for Windows`);
-  }
-  // --- FIN LOGIQUE WINDOWS PATH ---
+  for (const bin of BINARIES) await downloadBinary(bin);
 }
 
 installAll();
