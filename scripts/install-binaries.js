@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// install-binaries.js
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -8,14 +7,13 @@ import https from 'https';
 import { pipeline } from 'stream';
 import { promisify } from 'util';
 import unzipper from 'unzipper';
-import { execSync } from 'child_process';
+import { execSync, spawnSync } from 'child_process';
 
 const streamPipeline = promisify(pipeline);
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ROOT_DIR = path.resolve(__dirname, '..');
-const BIN_DIR = path.join(ROOT_DIR, 'bin');
+const BIN_DIR = path.join(__dirname, '..', 'bin');
 
 if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
 
@@ -50,7 +48,7 @@ async function installFfmpeg() {
       execSync('pkg install -y ffmpeg', { stdio: 'inherit' });
       console.log('✅ ffmpeg installed via pkg');
       return '/data/data/com.termux/files/usr/bin/ffmpeg';
-    } catch (err) {
+    } catch {
       console.warn('⚠️ pkg install failed, falling back to download...');
     }
   }
@@ -92,24 +90,23 @@ async function installYtdlp() {
   return ytdlpPath;
 }
 
-async function installSpleeter() {
+function installSpleeter() {
   if (process.env.TERMUX_VERSION) {
-    console.log('ℹ️ Termux detected, skipping Spleeter installation');
+    console.log('ℹ️ Termux detected, skipping Spleeter installation.');
     return;
   }
 
   try {
-    execSync('spleeter --version', { stdio: 'ignore' });
-    console.log('✅ Spleeter already installed');
-  } catch {
     console.log('⬇️ Installing Spleeter via pip...');
-    try {
-      execSync('python3 -m pip install --upgrade pip', { stdio: 'inherit' });
-      execSync('python3 -m pip install spleeter', { stdio: 'inherit' });
-      console.log('✅ Spleeter installed');
-    } catch (err) {
-      console.warn('⚠️ Failed to install Spleeter:', err.message);
-    }
+    const python = spawnSync('python', ['-m', 'pip', '--version'], { stdio: 'ignore' });
+    if (python.error) throw python.error;
+
+    // Installation Spleeter
+    execSync('python -m pip install --user --upgrade pip', { stdio: 'inherit' });
+    execSync('python -m pip install --user spleeter==2.1.0', { stdio: 'inherit' });
+    console.log('✅ Spleeter installed.');
+  } catch (err) {
+    console.warn(`⚠️ Failed to install Spleeter: ${err.message}`);
   }
 }
 
@@ -117,8 +114,9 @@ async function installSpleeter() {
   try {
     await installFfmpeg();
     await installYtdlp();
-    await installSpleeter();
+    installSpleeter();
 
+    // --- Add BIN_DIR to PATH on Windows for session ---
     if (os.platform() === 'win32') {
       process.env.PATH = `${BIN_DIR};${process.env.PATH}`;
       console.log(`🔧 Added ${BIN_DIR} to PATH for this session`);
