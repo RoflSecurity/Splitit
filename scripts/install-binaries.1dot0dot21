@@ -1,4 +1,4 @@
-// install-binaries.js
+#!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -9,8 +9,6 @@ import process from 'process';
 import unzipper from 'unzipper';
 
 const streamPipeline = promisify(pipeline);
-
-// Fix cross-platform path for ES Modules
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,6 +54,10 @@ async function downloadFile(url, destPath) {
 
 async function downloadBinary(bin) {
   const destPath = path.join(BIN_DIR, bin.filename);
+  if (fs.existsSync(destPath)) {
+    console.log(`✅ ${bin.name} already exists at ${destPath}`);
+    return;
+  }
 
   // --- DEBUT LOGIQUE TERMUX ---
   if (process.env.TERMUX_VERSION && bin.name === 'ffmpeg') {
@@ -64,17 +66,12 @@ async function downloadBinary(bin) {
       console.log('📦 Termux detected, installing ffmpeg via pkg...');
       execSync('pkg install -y ffmpeg', { stdio: 'inherit' });
       console.log('✅ ffmpeg installed via pkg');
-      return; // Skip download
+      return;
     } catch (err) {
       console.warn('⚠️ pkg install failed, falling back to download...');
     }
   }
   // --- FIN LOGIQUE TERMUX ---
-
-  if (fs.existsSync(destPath)) {
-    console.log(`✅ ${bin.name} already exists at ${destPath}`);
-    return;
-  }
 
   for (const url of bin.urls) {
     try {
@@ -88,7 +85,9 @@ async function downloadBinary(bin) {
         fs.unlinkSync(tmpPath);
       }
 
-      if (os.platform() !== 'win32') fs.chmodSync(destPath, 0o755);
+      if (os.platform() !== 'win32') {
+        fs.chmodSync(destPath, 0o755);
+      }
 
       console.log(`✅ ${bin.name} installed at ${destPath}`);
       return;
@@ -96,6 +95,7 @@ async function downloadBinary(bin) {
       console.warn(`⚠️ Failed to download from ${url}: ${err.message}`);
     }
   }
+
   console.error(`❌ Could not install ${bin.name}, all sources failed.`);
 }
 
@@ -104,6 +104,13 @@ async function installAll() {
   for (const bin of BINARIES) {
     await downloadBinary(bin);
   }
+
+  // --- DEBUT LOGIQUE WINDOWS PATH ---
+  if (os.platform() === 'win32') {
+    process.env.PATH = `${BIN_DIR};${process.env.PATH}`;
+    console.log(`📦 Added ${BIN_DIR} to PATH for Windows`);
+  }
+  // --- FIN LOGIQUE WINDOWS PATH ---
 }
 
 installAll();
