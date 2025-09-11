@@ -4,7 +4,7 @@
 **Version:** `0.0.10`  <!-- dynamically updated by clean.sh -->
 
 ---
-<!-- project size: 63.59 MB -->
+<!-- project size: 63.60 MB -->
 
 ## Installation 🌍
 
